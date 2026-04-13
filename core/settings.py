@@ -116,3 +116,6 @@ SPECTACULAR_SETTINGS = {
     "SWAGGER_UI_FAVICON_HREF": "SIDECAR",
     "REDOC_DIST": "SIDECAR",
 }
+
+# E-mail — em desenvolvimento imprime no terminal
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
