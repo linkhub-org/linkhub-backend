@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "projects",
     "applications",
     "notifications",
+    "feed",
 ]
 
 MIDDLEWARE = [
