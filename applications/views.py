@@ -2,9 +2,11 @@ from rest_framework import generics, permissions, status
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
+
 from .models import Application, ApplicationStatus, ProjectMember
 from .serializers import ApplicationSerializer, ApplicationStatusUpdateSerializer, ProjectMemberSerializer
 from projects.models import Project
+from notifications.services import NotificationService
 
 
 class ApplicationCreateView(generics.CreateAPIView):
@@ -20,10 +22,12 @@ class ApplicationCreateView(generics.CreateAPIView):
 
     def perform_create(self, serializer):
         project = get_object_or_404(Project, pk=self.kwargs['project_pk'])
-        serializer.save(
+        application = serializer.save(
             applicant=self.request.user,
             project=project
         )
+        # RF04.01 — Notifica o criador do projeto
+        NotificationService.notify_new_application(application)
 
 
 class ApplicationListView(generics.ListAPIView):
@@ -60,6 +64,10 @@ class ApplicationUpdateView(generics.UpdateAPIView):
                 project=application.project,
                 user=application.applicant
             )
+
+        # RF04.02 — Notifica o candidato sobre o resultado
+        application.refresh_from_db()
+        NotificationService.notify_application_result(application)
 
 
 class ApplicationDeleteView(generics.DestroyAPIView):

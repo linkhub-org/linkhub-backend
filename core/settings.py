@@ -28,6 +28,8 @@ INSTALLED_APPS = [
     "users",
     "projects",
     "applications",
+    "notifications",
+    "feed",
 ]
 
 MIDDLEWARE = [
