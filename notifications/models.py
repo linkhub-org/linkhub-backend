@@ -1,6 +1,6 @@
 from django.db import models
-
 from users.models import User
+from projects.models import Project
 
 
 class NotificationType(models.TextChoices):
@@ -23,6 +23,14 @@ class Notification(models.Model):
     )
     message = models.TextField(verbose_name="Mensagem")
     is_read = models.BooleanField(default=False, verbose_name="Lida")
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="notifications",
+        verbose_name="Projeto relacionado"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
