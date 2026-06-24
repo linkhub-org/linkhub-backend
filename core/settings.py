@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "applications",
     "notifications",
     "feed",
+    "social",
 ]
 
 MIDDLEWARE = [
