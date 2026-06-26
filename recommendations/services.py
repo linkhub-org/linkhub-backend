@@ -1,17 +1,20 @@
 import json
-import anthropic
+from groq import Groq
 from decouple import config
+from rest_framework.exceptions import APIException
+
+
+class AIUnavailableException(APIException):
+    status_code = 503
+    default_detail = "Serviço de IA temporariamente indisponível."
+    default_code = "ai_unavailable"
 
 
 def _get_client():
-    return anthropic.Anthropic(api_key=config('ANTHROPIC_API_KEY'))
+    return Groq(api_key=config('GROQ_API_KEY'))
 
 
 def recommend_profiles_for_project(project, available_profiles):
-    """
-    Recebe um Project e uma lista/queryset de Users disponíveis.
-    Retorna lista de dicts: [{user_id, name, reason}, ...]
-    """
     if not available_profiles:
         return []
 
@@ -45,22 +48,30 @@ Responda APENAS em JSON válido, sem texto adicional, sem markdown, no formato:
   }}
 ]"""
 
-    client = _get_client()
-    message = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=1024,
-        messages=[{"role": "user", "content": prompt}],
-    )
+    try:
+        client = _get_client()
+        response = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=1024,
+            temperature=0.3,
+        )
+        raw = response.choices[0].message.content.strip()
 
-    raw = message.content[0].text.strip()
-    return json.loads(raw)
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+            raw = raw.strip()
+
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        raise AIUnavailableException(detail="Resposta da IA em formato inválido.")
+    except Exception as e:
+        raise AIUnavailableException(detail=f"Erro na API de IA: {str(e)}")
 
 
 def recommend_projects_for_user(user, available_projects):
-    """
-    Recebe um User e uma lista/queryset de Projects disponíveis.
-    Retorna lista de dicts: [{project_id, title, reason}, ...]
-    """
     if not available_projects:
         return []
 
@@ -95,12 +106,24 @@ Responda APENAS em JSON válido, sem texto adicional, sem markdown, no formato:
   }}
 ]"""
 
-    client = _get_client()
-    message = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=1024,
-        messages=[{"role": "user", "content": prompt}],
-    )
+    try:
+        client = _get_client()
+        response = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=1024,
+            temperature=0.3,
+        )
+        raw = response.choices[0].message.content.strip()
 
-    raw = message.content[0].text.strip()
-    return json.loads(raw)
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+            raw = raw.strip()
+
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        raise AIUnavailableException(detail="Resposta da IA em formato inválido.")
+    except Exception as e:
+        raise AIUnavailableException(detail=f"Erro na API de IA: {str(e)}")
