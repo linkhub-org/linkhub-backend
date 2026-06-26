@@ -1,5 +1,3 @@
-# recommendations/services.py
-
 import json
 import anthropic
 from decouple import config
