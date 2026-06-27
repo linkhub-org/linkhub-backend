@@ -18,11 +18,15 @@ def recommend_profiles_for_project(project, available_profiles):
     if not available_profiles:
         return []
 
+    profiles_list = list(available_profiles)
+    total = len(profiles_list)
+    quantidade = min(3, total)
+
     profiles_text = "\n".join([
         f"- ID {p.id}: {p.name} | Curso: {p.course or 'Não informado'} | "
         f"Bio: {p.bio or 'Não informada'} | "
         f"Habilidades: {', '.join(p.skills) if p.skills else 'Não informadas'}"
-        for p in available_profiles
+        for p in profiles_list
     ])
 
     prompt = f"""Você é um assistente de recrutamento universitário.
@@ -36,7 +40,8 @@ Projeto:
 Perfis disponíveis na instituição (excluindo membros atuais):
 {profiles_text}
 
-Recomende os 3 perfis mais compatíveis com este projeto.
+Recomende EXATAMENTE {quantidade} perfil(is) desta lista acima.
+IMPORTANTE: use APENAS os IDs e nomes que aparecem na lista acima. Não invente perfis.
 Para cada um, explique em 1-2 frases por que é uma boa escolha.
 
 Responda APENAS em JSON válido, sem texto adicional, sem markdown, no formato:
@@ -52,9 +57,15 @@ Responda APENAS em JSON válido, sem texto adicional, sem markdown, no formato:
         client = _get_client()
         response = client.chat.completions.create(
             model="llama-3.1-8b-instant",
-            messages=[{"role": "user", "content": prompt}],
+            messages=[
+                {
+                    "role": "system",
+                    "content": "Você responde APENAS com JSON válido. Nunca invente dados. Use somente os IDs e nomes fornecidos pelo usuário."
+                },
+                {"role": "user", "content": prompt}
+            ],
             max_tokens=1024,
-            temperature=0.3,
+            temperature=0.1,
         )
         raw = response.choices[0].message.content.strip()
 
@@ -64,7 +75,13 @@ Responda APENAS em JSON válido, sem texto adicional, sem markdown, no formato:
                 raw = raw[4:]
             raw = raw.strip()
 
-        return json.loads(raw)
+        recommendations = json.loads(raw)
+
+        valid_ids = {p.id for p in profiles_list}
+        recommendations = [r for r in recommendations if r.get("user_id") in valid_ids]
+
+        return recommendations
+
     except json.JSONDecodeError:
         raise AIUnavailableException(detail="Resposta da IA em formato inválido.")
     except Exception as e:
@@ -75,12 +92,16 @@ def recommend_projects_for_user(user, available_projects):
     if not available_projects:
         return []
 
+    projects_list = list(available_projects)
+    total = len(projects_list)
+    quantidade = min(3, total)
+
     projects_text = "\n".join([
         f"- ID {p.id}: {p.title} | "
         f"Descrição: {p.description[:200]} | "
         f"Perfil buscado: {p.looking_for[:150]} | "
         f"Categoria: {p.get_category_display()}"
-        for p in available_projects
+        for p in projects_list
     ])
 
     prompt = f"""Você é um assistente de conexão universitária.
@@ -94,7 +115,8 @@ Perfil do usuário:
 Projetos disponíveis na instituição (excluindo projetos que já participa):
 {projects_text}
 
-Recomende os 3 projetos mais compatíveis com este perfil.
+Recomende EXATAMENTE {quantidade} projeto(s) desta lista acima.
+IMPORTANTE: use APENAS os IDs e títulos que aparecem na lista acima. Não invente projetos.
 Para cada um, explique em 1-2 frases por que é uma boa escolha.
 
 Responda APENAS em JSON válido, sem texto adicional, sem markdown, no formato:
@@ -110,9 +132,15 @@ Responda APENAS em JSON válido, sem texto adicional, sem markdown, no formato:
         client = _get_client()
         response = client.chat.completions.create(
             model="llama-3.1-8b-instant",
-            messages=[{"role": "user", "content": prompt}],
+            messages=[
+                {
+                    "role": "system",
+                    "content": "Você responde APENAS com JSON válido. Nunca invente dados. Use somente os IDs e títulos fornecidos pelo usuário."
+                },
+                {"role": "user", "content": prompt}
+            ],
             max_tokens=1024,
-            temperature=0.3,
+            temperature=0.1,
         )
         raw = response.choices[0].message.content.strip()
 
@@ -122,7 +150,13 @@ Responda APENAS em JSON válido, sem texto adicional, sem markdown, no formato:
                 raw = raw[4:]
             raw = raw.strip()
 
-        return json.loads(raw)
+        recommendations = json.loads(raw)
+
+        valid_ids = {p.id for p in projects_list}
+        recommendations = [r for r in recommendations if r.get("project_id") in valid_ids]
+
+        return recommendations
+
     except json.JSONDecodeError:
         raise AIUnavailableException(detail="Resposta da IA em formato inválido.")
     except Exception as e:
