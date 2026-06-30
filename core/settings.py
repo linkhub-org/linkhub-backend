@@ -31,9 +31,8 @@ INSTALLED_APPS = [
     "notifications",
     "feed",
     "social",
-]
     "recommendations",
-    ]
+]
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",  # deve ser o primeiro
