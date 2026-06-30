@@ -12,6 +12,8 @@ class ProjectSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     category_display = serializers.CharField(source='get_category_display', read_only=True)
     members = MemberSerializer(many=True, read_only=True)
+    saves_count = serializers.SerializerMethodField()
+    is_saved = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
@@ -20,12 +22,20 @@ class ProjectSerializer(serializers.ModelSerializer):
             'category', 'category_display',
             'status', 'status_display',
             'created_at', 'owner_name', 'institution_name',
-            'members'
+            'members', 'saves_count', 'is_saved'
         ]
         read_only_fields = ['id', 'created_at', 'owner_name', 'institution_name']
 
+    def get_saves_count(self, obj):
+        return obj.saved_by.count()
+
+    def get_is_saved(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.saved_by.filter(user=request.user).exists()
+        return False
+
     def validate_status(self, value):
-        # Impede criar projeto já com status encerrado
         if self.instance is None and value != ProjectStatus.OPEN:
             raise serializers.ValidationError(
                 "Novos projetos devem ser criados com status Aberto."

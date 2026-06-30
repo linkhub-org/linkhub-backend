@@ -30,6 +30,8 @@ INSTALLED_APPS = [
     "applications",
     "notifications",
     "feed",
+    "social",
+]
     "recommendations",
     ]
 
