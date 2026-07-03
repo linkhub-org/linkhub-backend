@@ -5,15 +5,30 @@ from projects.models import Project
 from projects.serializers import ProjectSerializer
 from .models import User
 from .serializers import RegisterSerializer, UserMeSerializer, UserPublicSerializer
+from .email_verification import send_verification_email
 
 
 class RegisterView(generics.CreateAPIView):
+    """
+    RF01.01 — POST /api/auth/register/
+    Cadastro de novo usuário com e-mail institucional.
+    Não requer autenticação.
+    """
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
     permission_classes = [permissions.AllowAny]
 
+    def perform_create(self, serializer):
+        user = serializer.save()
+        # Envia e-mail de confirmação após cadastro
+        send_verification_email(user)
+
 
 class UserMeView(generics.RetrieveUpdateAPIView):
+    """
+    RF01.04 — GET /api/users/me/
+    RF01.05 — PUT /api/users/me/
+    """
     serializer_class = UserMeSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -24,43 +39,31 @@ class UserMeView(generics.RetrieveUpdateAPIView):
 class UserPublicView(generics.RetrieveAPIView):
     """
     RF01.06 — GET /api/users/{id}/
-    Visualizar perfil público de outro usuário da mesma instituição.
-    Requer autenticação.
     """
     serializer_class = UserPublicSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        # Garante isolamento: só retorna usuários da mesma instituição
-        # Exclui o próprio usuário — para isso use /api/users/me/
         return User.objects.filter(
             institution=self.request.user.institution
         ).exclude(pk=self.request.user.pk)
 
 
-
 class UserProjectsView(generics.ListAPIView):
     """
     GET /api/users/me/projects/
-    Retorna os projetos criados e os projetos em que o usuário é membro.
     """
     serializer_class = ProjectSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
-
-        # Projetos criados pelo usuário
         owned = Project.objects.filter(owner=user)
-
-        # Projetos em que é membro
         member_of = Project.objects.filter(
             members__user=user
         ).exclude(owner=user)
-
-        # Une os dois querysets
-        from itertools import chain
-        from django.db.models import QuerySet
-        combined_ids = list(owned.values_list('id', flat=True)) + \
-                       list(member_of.values_list('id', flat=True))
+        combined_ids = (
+            list(owned.values_list('id', flat=True)) +
+            list(member_of.values_list('id', flat=True))
+        )
         return Project.objects.filter(id__in=combined_ids).order_by('-created_at')
