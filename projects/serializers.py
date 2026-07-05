@@ -8,6 +8,7 @@ class MemberSerializer(serializers.Serializer):
 
 class ProjectSerializer(serializers.ModelSerializer):
     owner_name = serializers.CharField(source='owner.name', read_only=True)
+    owner_id = serializers.IntegerField(source='owner.id', read_only=True)
     institution_name = serializers.CharField(source='institution.name', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     category_display = serializers.CharField(source='get_category_display', read_only=True)
@@ -21,7 +22,7 @@ class ProjectSerializer(serializers.ModelSerializer):
             'id', 'title', 'description', 'looking_for',
             'category', 'category_display',
             'status', 'status_display',
-            'created_at', 'owner_name', 'institution_name',
+            'created_at', 'owner_name', 'owner_id', 'institution_name',
             'members', 'saves_count', 'is_saved'
         ]
         read_only_fields = ['id', 'created_at', 'owner_name', 'institution_name']

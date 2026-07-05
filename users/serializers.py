@@ -73,12 +73,20 @@ class UserMeSerializer(serializers.ModelSerializer):
         source='institution.name',
         read_only=True
     )
+    followers_count = serializers.SerializerMethodField()
+    following_count = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = [
             'id', 'name', 'email', 'course', 'bio',
             'avatar_url', 'skills', 'is_available',
-            'institution_name'
+            'institution_name', 'followers_count', 'following_count'
         ]
         read_only_fields = ['id', 'email', 'institution_name']
+
+    def get_followers_count(self, obj):
+        return obj.followers.count()
+
+    def get_following_count(self, obj):
+        return obj.following.count()
