@@ -9,12 +9,15 @@ from notifications.models import Notification, NotificationType
 
 
 def create_user(email, name="Usuário"):
-    return User.objects.create_user(
+    user = User.objects.create_user(
         email=email,
         name=name,
         password="Senha@1234",
         course="Computação"
     )
+    user.is_email_verified = True
+    user.save(update_fields=["is_email_verified"])
+    return user
 
 def create_project(owner, title="Projeto Teste", category="academic"):
     return Project.objects.create(
